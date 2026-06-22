@@ -2,20 +2,20 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>五子棋 </title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>五子棋 - 終極地獄響應式版</title>
 <style>
   /* 基礎排版：單欄置中 */
-  body { margin: 0; background-color: #2c3e50; font-family: "Microsoft JhengHei", sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-y: auto; padding: 20px 0; }
-  #app { width: 800px; max-width: 95vw; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1; display: flex; flex-direction: column; position: relative; }
-  #top-bar { display: flex; justify-content: space-between; align-items: center; background: #34495e; color: white; padding: 15px 20px; border-radius: 12px 12px 0 0; }
-  .screen { padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; flex-grow: 1; overflow-y: auto; }
+  body { margin: 0; background-color: #2c3e50; font-family: "Microsoft JhengHei", sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-y: auto; padding: 20px 0; box-sizing: border-box; }
+  #app { width: 800px; max-width: 95vw; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  #top-bar { display: flex; justify-content: space-between; align-items: center; background: #34495e; color: white; padding: 15px 20px; border-radius: 12px 12px 0 0; flex-wrap: wrap; gap: 10px; }
+  .screen { padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; flex-grow: 1; overflow-y: auto; box-sizing: border-box; }
   h1 { font-size: 32px; color: #2c3e50; margin-bottom: 20px; }
-  #status { font-size: 18px; color: #333; margin-bottom: 5px; font-weight: bold; height: 24px; }
+  #status { font-size: 18px; color: #333; margin-bottom: 5px; font-weight: bold; min-height: 24px; }
   .warning-text { color: #c0392b; font-weight: bold; animation: flash 1s infinite; height: 20px; margin-bottom: 5px; }
 
   /* 極簡按鈕樣式 */
-  .btn-menu { display: block; width: 250px; margin: 10px auto; padding: 14px; font-size: 18px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; color: white; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+  .btn-menu { display: block; width: 100%; max-width: 250px; margin: 10px auto; padding: 14px; font-size: 18px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; color: white; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); text-align: center; box-sizing: border-box; }
   .btn-menu:hover { transform: translateY(-2px); filter: brightness(1.15); }
   .btn-2p { background-color: #2980b9; }
   .btn-ai { background-color: #8e44ad; }
@@ -24,25 +24,25 @@
   .btn-hard { background-color: #c0392b; }
   .btn-hell { background-color: #8B0000; animation: pulse 2s infinite; }
   
-  .btn-small { width: auto; padding: 10px 20px; font-size: 16px; background-color: #7f8c8d; border: none; border-radius: 5px; color: white; cursor: pointer; margin: 0 5px; font-weight: bold; }
+  .btn-small { width: auto; padding: 12px 16px; font-size: 14px; background-color: #7f8c8d; border: none; border-radius: 5px; color: white; cursor: pointer; margin: 5px; font-weight: bold; transition: 0.2s; }
   .btn-small:hover { filter: brightness(1.2); }
   .btn-small:disabled { background-color: #bdc3c7; cursor: not-allowed; }
   
   /* 操作與佈局 */
-  .control-row { display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 10px; }
-  .rule-toggle { margin: 15px 0; padding: 10px; background: #ecf0f1; border-radius: 8px; font-weight: bold; color: #2c3e50; border: 2px solid #bdc3c7; display: inline-block; cursor: pointer; }
-  .review-panel { background: #f1f2f6; padding: 10px 20px; border-radius: 8px; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; gap: 15px; margin: 15px auto 0 auto; width: 100%; max-width: 630px; box-sizing: border-box; }
+  .control-row { display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 10px; flex-wrap: wrap; gap: 5px; padding: 5px; box-sizing: border-box; }
+  .rule-toggle { margin: 15px 0; padding: 10px; background: #ecf0f1; border-radius: 8px; font-weight: bold; color: #2c3e50; border: 2px solid #bdc3c7; display: inline-block; cursor: pointer; max-width: 100%; box-sizing: border-box; }
+  .review-panel { background: #f1f2f6; padding: 10px 20px; border-radius: 8px; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; gap: 15px; margin: 15px auto 0 auto; width: 100%; max-width: 608px; box-sizing: border-box; flex-wrap: wrap; }
 
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(139,0,0,0.7); } 70% { box-shadow: 0 0 0 10px rgba(139,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(139,0,0,0); } }
   @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 
-  /* 棋盤 */
-  .board-container { display: flex; justify-content: center; align-items: center; padding: 15px; background: #8B4513; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); width: 100%; max-width: 630px; box-sizing: border-box; margin: 0 auto; }
+  /* 📱 響應式棋盤容器與畫布（核心修正） */
+  .board-container { display: flex; justify-content: center; align-items: center; padding: 10px; background: #8B4513; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); width: 100%; max-width: 608px; box-sizing: border-box; margin: 0 auto; }
   #gameBoard { width: 100%; height: auto; aspect-ratio: 1 / 1; background-color: #DEB887; border: 2px solid #3E2723; cursor: pointer; display: block; }
 
   /* 👑 自訂勝利視窗 */
   #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 50000; justify-content: center; align-items: center; }
-  .alert-box { background: white; padding: 30px 50px; border-radius: 12px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+  .alert-box { background: white; padding: 30px 50px; border-radius: 12px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 85vw; box-sizing: border-box; }
   .alert-box h2 { margin-top: 0; font-size: 28px; }
   .alert-box button { background: #2980b9; color: white; border: none; padding: 12px 30px; font-size: 18px; cursor: pointer; border-radius: 6px; margin-top: 20px; font-weight: bold; transition: 0.2s; }
   .alert-box button:hover { background: #3498db; }
@@ -83,8 +83,8 @@
     <div class="logo">🎮 五子棋</div>
     <div class="settings">
       <label>🔊 音量：</label>
-      <input type="range" id="volumeCtrl" min="0" max="1" step="0.1" value="0.8">
-      <label id="scare-toggle-container" style="display:none; color:#ff4d4d; font-weight:bold; margin-left:15px; cursor:pointer;">
+      <input type="range" id="volumeCtrl" min="0" max="1" step="0.1" value="0.8" style="width:80px; vertical-align:middle;">
+      <label id="scare-toggle-container" style="display:none; color:#ff4d4d; font-weight:bold; margin-left:10px; cursor:pointer;">
         <input type="checkbox" id="scare-toggle" checked> 👻 特效
       </label>
     </div>
@@ -93,7 +93,7 @@
   <div id="main-menu" class="screen">
     <h1>選擇模式</h1>
     <label class="rule-toggle">
-      <input type="checkbox" id="rule-check" checked> ⚠️ 啟用專業禁手規則 (黑棋三三、四四、長連)
+      <input type="checkbox" id="rule-check" checked> ⚠️ 專業禁手規則 (黑棋三三、四四、長連)
     </label>
     <button class="btn-menu btn-2p" onclick="startGame('2P')">開始 2P 對戰</button>
     <button class="btn-menu btn-ai" onclick="showColorMenu()">開始 人機對戰</button>
@@ -120,7 +120,7 @@
     <h2 id="status">載入中...</h2>
     <div id="warning-msg" class="warning-text"></div>
 
-    <div id="pikafish-eval-panel" style="width: 100%; max-width: 600px; margin: 0 auto 12px auto; text-align: center; background: #f8f9fa; padding: 12px; border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); box-sizing: border-box;">
+    <div id="pikafish-eval-panel" style="width: 100%; max-width: 608px; margin: 0 auto 12px auto; text-align: center; background: #f8f9fa; padding: 12px; border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); box-sizing: border-box;">
       <div id="eval-container" style="width: 100%; background: #fff; height: 18px; border-radius: 9px; overflow: hidden; display: flex; border: 1px solid #ccc;">
         <div id="eval-black" style="width: 50%; background: #2c3e50; transition: width 0.4s ease; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: bold;">50%</div>
         <div id="eval-white" style="width: 50%; background: #ffffff; transition: width 0.4s ease; display: flex; align-items: center; justify-content: center; color: #333; font-size: 11px; font-weight: bold; border-left: 1px solid #bdc3c7;">50%</div>
@@ -139,9 +139,9 @@
     </div>
 
     <div id="review-panel" class="review-panel" style="display: none;">
-      <button class="btn-small" style="background:#2980b9" onclick="reviewMove(-1)">◀ 上一手 (←)</button>
+      <button class="btn-small" style="background:#2980b9" onclick="reviewMove(-1)">◀ 上一手</button>
       <span style="font-weight: bold; color: #2c3e50; font-size: 16px;">🔍 棋局回顧</span>
-      <button class="btn-small" style="background:#2980b9" onclick="reviewMove(1)">下一手 (→) ▶</button>
+      <button class="btn-small" style="background:#2980b9" onclick="reviewMove(1)">下一手 ▶</button>
     </div>
   </div>
 </div>
@@ -437,10 +437,13 @@ function countDirDetails(r, c, dr, dc, color) {
   return [count, open];
 }
 
+// 📱 響應式 Canvas 點擊位置自動修正
 canvas.addEventListener("click", (e) => {
   initAudio();
   if (gameOver || isReviewing || (mode === "AI" && turn === aiColor)) return;
   const rect = canvas.getBoundingClientRect();
+  
+  // 透過比例換算，確保在縮放後的手機畫布上點擊依然百分百精準
   const c = Math.round(((e.clientX - rect.left) * (canvas.width / rect.width) - pad) / cellSize);
   const r = Math.round(((e.clientY - rect.top) * (canvas.height / rect.height) - pad) / cellSize);
   
@@ -455,19 +458,17 @@ canvas.addEventListener("click", (e) => {
   }
 });
 
-// 🤝 👑 新增：偵測是否全盤已經完全沒有任何人有機會達成五連
+// 🤝 偵測是否全盤已經完全沒有任何人有機會達成五連（智慧和棋）
 function checkEarlyDraw() {
   for (let r = 0; r < size; r++) {
     for (let c = 0; c < size; c++) {
       for (let [dr, dc] of DIRS) {
         let endR = r + dr * 4;
         let endC = c + dc * 4;
-        // 確保這條 5 格線段完全在棋盤範圍內
         if (endR >= 0 && endR < size && endC >= 0 && endC < size) {
           let hasBlack = false;
           let hasWhite = false;
           
-          // 檢查這 5 個連續格子的內容物
           for (let i = 0; i < 5; i++) {
             let currR = r + dr * i;
             let currC = c + dc * i;
@@ -475,8 +476,6 @@ function checkEarlyDraw() {
             if (board[currR][currC] === WHITE) hasWhite = true;
           }
           
-          // 如果只要存在任何一條線段是「純黑+空格」或「純白+空格」
-          // 代表某一方理論上還存有獲勝的可能性，不能算死局
           if (!hasBlack || !hasWhite) {
             return false;
           }
@@ -484,13 +483,12 @@ function checkEarlyDraw() {
       }
     }
   }
-  return true; // 翻遍全盤，所有 5 格線段全被同時塞了黑白子，宣告提前平手
+  return true; 
 }
 
 function placeStone(r, c, color) {
   board[r][c] = color; history.push([r, c, color]); playWoodSound(); drawBoard();
   
-  // 1. 檢查是否達成五連獲勝
   if (checkWinResult(r, c, color)) {
     gameOver = true;
     let pName = (mode === "AI" && color === aiColor) ? "電腦" : (color === BLACK ? "黑方" : "白方");
@@ -502,7 +500,6 @@ function placeStone(r, c, color) {
     return;
   }
   
-  // 2. 👑 智慧型殘局提前和棋偵測
   if (checkEarlyDraw()) {
     gameOver = true;
     updateStatus();
@@ -525,7 +522,7 @@ function checkWinResult(r, c, color) {
 }
 
 // ==============================
-// 🧠 戰術連擊與博弈引擎 (終極強化版)
+// 🧠 戰術連擊與博弈引擎
 // ==============================
 function updateLiveEval() {
   if(history.length < 2) return;
@@ -566,7 +563,6 @@ function makeAiMove() {
   }, 50);
 }
 
-/* 🎯 基礎棋型估值器 */
 function scoreMove(r, c, color) {
   let total = 0;
   for (let [dr, dc] of DIRS) {
@@ -584,7 +580,6 @@ function scoreMove(r, c, color) {
   return total;
 }
 
-/* 🥊 地獄專用：複合連擊棋型精準分析矩陣 */
 function getMoveComboScore(r, c, color) {
   let live4 = 0, rush4 = 0, live3 = 0;
   for (let [dr, dc] of DIRS) {
@@ -593,7 +588,7 @@ function getMoveComboScore(r, c, color) {
     let line = cnt1 + cnt2 + 1;
     let opens = (open1 ? 1 : 0) + (open2 ? 1 : 0);
     
-    if (line >= 5) return 20000000; // 形成五連直接絕殺
+    if (line >= 5) return 20000000; 
     if (line === 4) {
       if (opens === 2) live4++;
       else if (opens === 1) rush4++;
@@ -603,19 +598,18 @@ function getMoveComboScore(r, c, color) {
   }
   
   let score = 0;
-  if (live4 > 0) score += 8000000; // 活四必勝型
-  if (rush4 >= 2) score += 4000000; // 雙衝四殺招
-  if (rush4 >= 1 && live3 >= 1) score += 3000000; // 經典四三絕殺路徑
+  if (live4 > 0) score += 8000000; 
+  if (rush4 >= 2) score += 4000000; 
+  if (rush4 >= 1 && live3 >= 1) score += 3000000; 
   if (live3 >= 2) {
-    if (color === BLACK && useRules) score -= 1000000; // 嚴格避開黑棋三三禁手
-    else score += 1500000; // 白棋雙三無限制直接起飛
+    if (color === BLACK && useRules) score -= 1000000; 
+    else score += 1500000; 
   }
   
   score += rush4 * 200000 + live3 * 80000;
   return score;
 }
 
-/* 👑 核心優化：更深、分支更廣的 Alpha-Beta 博弈樹 */
 function alphaBetaSearch(depth, alpha, beta, isMax, turnColor, aiColor) {
   let oppColor = aiColor === BLACK ? WHITE : BLACK;
   
@@ -639,7 +633,6 @@ function alphaBetaSearch(depth, alpha, beta, isMax, turnColor, aiColor) {
     return {r, c, score};
   }).sort((a, b) => b.score - a.score);
   
-  // 擴大內部節點寬度到 8，防止漏算大師級的側翼奇襲
   let limit = Math.min(scored.length, 8); 
   
   if (isMax) {
@@ -682,7 +675,6 @@ function alphaBetaSearch(depth, alpha, beta, isMax, turnColor, aiColor) {
 function aiPickMove(color) {
   const opp = color === BLACK ? WHITE : BLACK;
   
-  // 優先權 1：絕對絕殺與絕對防守判定（掃描全盤是否存在一步到位的 5 連）
   let move = findWinningSpot(color) || findWinningSpot(opp);
   if (move) return {r: move[0], c: move[1]};
 
@@ -695,7 +687,6 @@ function aiPickMove(color) {
     return {r: rnd[0], c: rnd[1]};
   }
 
-  /* 🔥 啟動對抗線上專家的地獄決策核心 */
   if (aiDifficulty === "HELL") {
     let bestMove = null;
     let maxAlpha = -Infinity;
@@ -705,23 +696,19 @@ function aiPickMove(color) {
       let defense = getMoveComboScore(r, c, opp);
       let centerBonus = (12 - (Math.abs(r - 7) + Math.abs(c - 7))) * 15;
       
-      // 模擬落子看是否能直接逼迫對手進入死局
       board[r][c] = color;
       if (checkWinResult(r, c, color)) { board[r][c] = EMPTY; return {r, c, score: 99999999}; }
       board[r][c] = opp;
       if (checkWinResult(r, c, opp)) { board[r][c] = EMPTY; return {r, c, score: 88888888}; }
       board[r][c] = EMPTY;
       
-      // 提高防守反擊權重比率，死咬大師級 AI 的落子
       return {r, c, score: attack * 1.3 + defense * 1.1 + centerBonus};
     }).sort((a, b) => b.score - a.score);
     
-    // 如果偵測到絕殺或必救點，立刻落子
     if (scoredCands[0].score >= 88888888) {
       return {r: scoredCands[0].r, c: scoredCands[0].c};
     }
     
-    // 擴大根節點搜尋寬度至前 12 強候選點，深度直接拉到 4 手展開
     let searchLimit = Math.min(scoredCands.length, 12);
     for (let i = 0; i < searchLimit; i++) {
       let cand = scoredCands[i];
@@ -739,7 +726,6 @@ function aiPickMove(color) {
     if (bestMove) return bestMove;
   }
 
-  // 傳統標準難度計算（簡單、中等、困難保持原配置）
   let best = null, bestScore = -Infinity;
   for (let [r, c] of candidates) {
     if (color === BLACK && checkForbidden(r, c, BLACK)) continue;
