@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>五子棋 </title>
+<style>
+  /* 基礎排版：單欄置中 */
+  body { margin: 0; background-color: #2c3e50; font-family: "Microsoft JhengHei", sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow-y: auto; padding: 20px 0; }
+  #app { width: 800px; max-width: 95vw; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1; display: flex; flex-direction: column; position: relative; }
+  #top-bar { display: flex; justify-content: space-between; align-items: center; background: #34495e; color: white; padding: 15px 20px; border-radius: 12px 12px 0 0; }
+  .screen { padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; flex-grow: 1; overflow-y: auto; }
+  h1 { font-size: 32px; color: #2c3e50; margin-bottom: 20px; }
+  #status { font-size: 18px; color: #333; margin-bottom: 5px; font-weight: bold; height: 24px; }
+  .warning-text { color: #c0392b; font-weight: bold; animation: flash 1s infinite; height: 20px; margin-bottom: 5px; }
+
+  /* 極簡按鈕樣式 */
+  .btn-menu { display: block; width: 250px; margin: 10px auto; padding: 14px; font-size: 18px; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; color: white; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+  .btn-menu:hover { transform: translateY(-2px); filter: brightness(1.15); }
+  .btn-2p { background-color: #2980b9; }
+  .btn-ai { background-color: #8e44ad; }
+  .btn-easy { background-color: #27ae60; }
+  .btn-medium { background-color: #d35400; }
+  .btn-hard { background-color: #c0392b; }
+  .btn-hell { background-color: #8B0000; animation: pulse 2s infinite; }
+  
+  .btn-small { width: auto; padding: 10px 20px; font-size: 16px; background-color: #7f8c8d; border: none; border-radius: 5px; color: white; cursor: pointer; margin: 0 5px; font-weight: bold; }
+  .btn-small:hover { filter: brightness(1.2); }
+  .btn-small:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+  
+  /* 操作與佈局 */
+  .control-row { display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 10px; }
+  .rule-toggle { margin: 15px 0; padding: 10px; background: #ecf0f1; border-radius: 8px; font-weight: bold; color: #2c3e50; border: 2px solid #bdc3c7; display: inline-block; cursor: pointer; }
+  .review-panel { background: #f1f2f6; padding: 10px 20px; border-radius: 8px; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; gap: 15px; margin: 15px auto 0 auto; width: 100%; max-width: 630px; box-sizing: border-box; }
+
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(139,0,0,0.7); } 70% { box-shadow: 0 0 0 10px rgba(139,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(139,0,0,0); } }
+  @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* 棋盤 */
+  .board-container { display: flex; justify-content: center; align-items: center; padding: 15px; background: #8B4513; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); width: 100%; max-width: 630px; box-sizing: border-box; margin: 0 auto; }
+  #gameBoard { width: 100%; height: auto; aspect-ratio: 1 / 1; background-color: #DEB887; border: 2px solid #3E2723; cursor: pointer; display: block; }
+
+  /* 👑 自訂勝利視窗 */
+  #custom-alert { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 50000; justify-content: center; align-items: center; }
+  .alert-box { background: white; padding: 30px 50px; border-radius: 12px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+  .alert-box h2 { margin-top: 0; font-size: 28px; }
+  .alert-box button { background: #2980b9; color: white; border: none; padding: 12px 30px; font-size: 18px; cursor: pointer; border-radius: 6px; margin-top: 20px; font-weight: bold; transition: 0.2s; }
+  .alert-box button:hover { background: #3498db; }
+
+  /* ⬛ 崩潰黑屏遮罩與鬼影 */
+  #black-screen-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 99998; overflow: hidden; }
+  
+  /* 🎚️ 電視雜訊雪花效果 */
+  #black-screen-overlay.noise-active::before {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.18'/%3E%3C/svg%3E");
+    animation: noise-anim 0.15s infinite;
+    pointer-events: none;
+  }
+  @keyframes noise-anim {
+    0% { transform: translate(0,0); }
+    10% { transform: translate(-1%, -2%); }
+    20% { transform: translate(-2%, 1%); }
+    30% { transform: translate(1%, -1%); }
+    40% { transform: translate(-1%, 2%); }
+    50% { transform: translate(-2%, -1%); }
+    60% { transform: translate(2%, 2%); }
+    70% { transform: translate(-1%, -2%); }
+    80% { transform: translate(1%, 1%); }
+    90% { transform: translate(-2%, -2%); }
+    100% { transform: translate(0,0); }
+  }
+
+  #full-ghost-img { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: contain; z-index: 99999; background: black; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="top-bar">
+    <div class="logo">🎮 五子棋</div>
+    <div class="settings">
+      <label>🔊 音量：</label>
+      <input type="range" id="volumeCtrl" min="0" max="1" step="0.1" value="0.8">
+      <label id="scare-toggle-container" style="display:none; color:#ff4d4d; font-weight:bold; margin-left:15px; cursor:pointer;">
+        <input type="checkbox" id="scare-toggle" checked> 👻 特效
+      </label>
+    </div>
+  </div>
+
+  <div id="main-menu" class="screen">
+    <h1>選擇模式</h1>
+    <label class="rule-toggle">
+      <input type="checkbox" id="rule-check" checked> ⚠️ 啟用專業禁手規則 (黑棋三三、四四、長連)
+    </label>
+    <button class="btn-menu btn-2p" onclick="startGame('2P')">開始 2P 對戰</button>
+    <button class="btn-menu btn-ai" onclick="showColorMenu()">開始 人機對戰</button>
+  </div>
+
+  <div id="color-menu" class="screen" style="display: none;">
+    <h1>選擇先後手</h1>
+    <button class="btn-menu" style="background-color: #2c3e50;" onclick="selectColor('BLACK')">⚫ 玩家執黑 (先手)</button>
+    <button class="btn-menu" style="background-color: #bdc3c7; color: #2c3e50;" onclick="selectColor('WHITE')">⚪ 玩家執白 (後手)</button>
+    <button class="btn-menu btn-2p" onclick="selectColor('RANDOM')">🎲 隨機分配</button>
+    <button class="btn-small" style="margin-top:20px;" onclick="showScreen('main-menu')">↩ 返回主選單</button>
+  </div>
+
+  <div id="ai-menu" class="screen" style="display: none;">
+    <h1>選擇難度</h1>
+    <button class="btn-menu btn-easy" onclick="startAiGame('EASY')">簡單</button>
+    <button class="btn-menu btn-medium" onclick="startAiGame('MEDIUM')">中等</button>
+    <button class="btn-menu btn-hard" onclick="startAiGame('HARD')">困難</button>
+    <button class="btn-menu btn-hell" onclick="startAiGame('HELL')">地獄</button>
+    <button class="btn-small" style="margin-top:20px;" onclick="showScreen('color-menu')">↩ 返回上一頁</button>
+  </div>
+
+  <div id="game-screen" class="screen" style="display: none;">
+    <h2 id="status">載入中...</h2>
+    <div id="warning-msg" class="warning-text"></div>
+
+    <div id="pikafish-eval-panel" style="width: 100%; max-width: 600px; margin: 0 auto 12px auto; text-align: center; background: #f8f9fa; padding: 12px; border-radius: 8px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); box-sizing: border-box;">
+      <div id="eval-container" style="width: 100%; background: #fff; height: 18px; border-radius: 9px; overflow: hidden; display: flex; border: 1px solid #ccc;">
+        <div id="eval-black" style="width: 50%; background: #2c3e50; transition: width 0.4s ease; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: bold;">50%</div>
+        <div id="eval-white" style="width: 50%; background: #ffffff; transition: width 0.4s ease; display: flex; align-items: center; justify-content: center; color: #333; font-size: 11px; font-weight: bold; border-left: 1px solid #bdc3c7;">50%</div>
+      </div>
+      <div id="eval-text" style="font-size: 14px; margin-top: 8px; font-weight: bold; color: #555; text-align: center;">⚖️ AI 預測引擎已啟動</div>
+    </div>
+
+    <div class="board-container">
+      <canvas id="gameBoard" width="608" height="608"></canvas>
+    </div>
+    
+    <div class="control-row">
+      <button id="btn-undo" class="btn-small" onclick="undo()">↶ 悔棋</button>
+      <button class="btn-small" onclick="resetGame()">↻ 重新開始</button>
+      <button class="btn-small" onclick="backToMainMenu()">🏠 回主選單</button>
+    </div>
+
+    <div id="review-panel" class="review-panel" style="display: none;">
+      <button class="btn-small" style="background:#2980b9" onclick="reviewMove(-1)">◀ 上一手 (←)</button>
+      <span style="font-weight: bold; color: #2c3e50; font-size: 16px;">🔍 棋局回顧</span>
+      <button class="btn-small" style="background:#2980b9" onclick="reviewMove(1)">下一手 (→) ▶</button>
+    </div>
+  </div>
+</div>
+
+<div id="custom-alert">
+  <div class="alert-box">
+    <h2 id="alert-title">電腦獲勝！</h2>
+    <button onclick="handleAlertConfirm()">確定</button>
+  </div>
+</div>
+
+<div id="black-screen-overlay"></div>
+<img id="full-ghost-img" src="2024511121620.gif" alt="Ghost">
+
+<script>
+const canvas = document.getElementById("gameBoard");
+const ctx = canvas.getContext("2d");
+const statusTxt = document.getElementById("status");
+const warningMsg = document.getElementById("warning-msg");
+const volCtrl = document.getElementById("volumeCtrl");
+const btnUndo = document.getElementById("btn-undo");
+const customAlert = document.getElementById("custom-alert");
+const alertTitle = document.getElementById("alert-title");
+const scareToggle = document.getElementById("scare-toggle");
+
+let audioCtx;
+let globalVolume = parseFloat(volCtrl.value);
+const horrorAudio = new Audio('y1025.mp3');
+
+volCtrl.addEventListener("input", (e) => globalVolume = parseFloat(e.target.value));
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playWoodSound() {
+  if (!audioCtx || globalVolume <= 0) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+  osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.03); 
+  gain.gain.setValueAtTime(globalVolume * 2, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03); 
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+}
+
+// 🎬 驚嚇與彈窗邏輯
+let pendingHellScare = false;
+let isPostScareAlert = false;
+
+function showWinMessage(text, isHellLoss) {
+  if (isHellLoss && scareToggle.checked) {
+    alertTitle.innerText = text;
+    alertTitle.style.color = "#8B0000";
+    pendingHellScare = true;
+    customAlert.style.display = "flex";
+  } else {
+    alertTitle.innerText = text;
+    alertTitle.style.color = "#2c3e50";
+    pendingHellScare = false;
+    isPostScareAlert = false;
+    customAlert.style.display = "flex";
+  }
+}
+
+function handleAlertConfirm() {
+  customAlert.style.display = "none"; 
+  if (pendingHellScare) {
+    pendingHellScare = false;
+    scheduleGuaranteedScare(); 
+  } else if (isPostScareAlert) {
+    isPostScareAlert = false;
+    startReviewMode();
+  } else {
+    startReviewMode();
+  }
+}
+
+function scheduleGuaranteedScare() {
+  initAudio();
+  volCtrl.value = 1; globalVolume = 1; 
+  horrorAudio.volume = 1.0;
+  horrorAudio.play().then(() => { horrorAudio.pause(); horrorAudio.currentTime = 0; }).catch(()=>console.log("預熱略過"));
+
+  const overlay = document.getElementById("black-screen-overlay");
+  const ghostImg = document.getElementById("full-ghost-img");
+  
+  document.body.style.cursor = "none";
+  overlay.classList.add("noise-active");
+  overlay.style.display = "block";
+  
+  setTimeout(() => {
+    overlay.classList.remove("noise-active");
+    ghostImg.style.display = "block"; 
+    horrorAudio.currentTime = 0;
+    horrorAudio.play(); 
+
+    setTimeout(() => {
+      horrorAudio.pause();
+      ghostImg.style.display = "none";
+      overlay.style.display = "none";
+      document.body.style.cursor = "default";
+      
+      document.getElementById("scare-toggle-container").style.display = "inline";
+      
+      alertTitle.innerText = "哈哈這就是地獄輸的懲罰";
+      alertTitle.style.color = "#8B0000";
+      isPostScareAlert = true;
+      customAlert.style.display = "flex";
+
+    }, 4300);
+  }, 8000); 
+}
+
+// ==============================
+// 遊戲核心與禁手規則引擎
+// ==============================
+const EMPTY = 0, BLACK = 1, WHITE = 2;
+const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1]];
+const size = 15, cellSize = 40, pad = 24; 
+let board = [], history = [], turn = BLACK;
+let gameOver = false, useRules = true;
+let mode = "2P", aiDifficulty = "MEDIUM", aiColor = WHITE, playerOf = {};
+let playerColorChoice = "RANDOM"; 
+let isReviewing = false, reviewHistory = [], reviewIndex = 0;
+
+function showScreen(id) { document.querySelectorAll('.screen').forEach(el => el.style.display = 'none'); document.getElementById(id).style.display = 'block'; }
+function backToMainMenu() { horrorAudio.pause(); showScreen('main-menu'); }
+function showColorMenu() { initAudio(); showScreen('color-menu'); }
+function selectColor(choice) { initAudio(); playerColorChoice = choice; showScreen('ai-menu'); }
+
+function startGame(selectedMode) { 
+  initAudio(); mode = selectedMode; btnUndo.disabled = false; isReviewing = false;
+  document.getElementById("review-panel").style.display = "none";
+  useRules = document.getElementById('rule-check').checked;
+
+  if (mode === "AI") {
+    if (playerColorChoice === 'BLACK') aiColor = WHITE;
+    else if (playerColorChoice === 'WHITE') aiColor = BLACK;
+    else aiColor = Math.random() > 0.5 ? BLACK : WHITE;
+    playerOf = { [aiColor === BLACK ? WHITE : BLACK]: "玩家", [aiColor]: "電腦" };
+  } else {
+    playerOf = { [BLACK]: "玩家1", [WHITE]: "玩家2" };
+  }
+  showScreen('game-screen'); resetGame(); 
+}
+function startAiGame(difficulty) { aiDifficulty = difficulty; startGame('AI'); }
+
+function initBoard() {
+  board = Array.from({ length: size }, () => Array(size).fill(EMPTY));
+  history = []; turn = BLACK; gameOver = false; isReviewing = false;
+  warningMsg.innerText = "";
+  document.getElementById("review-panel").style.display = "none";
+  btnUndo.disabled = false;
+  updateEvalBar(50, "⚖️ AI 預測引擎已啟動");
+}
+
+function resetGame() {
+  initBoard(); updateStatus(); drawBoard();
+  if (mode === "AI" && aiColor === BLACK) setTimeout(makeAiMove, 400);
+}
+
+function undo() {
+  if (history.length === 0 || gameOver || isReviewing) return;
+  warningMsg.innerText = ""; gameOver = false;
+  let last = history.pop(); board[last[0]][last[1]] = EMPTY; turn = last[2];
+  if (mode === "AI") {
+    while (history.length > 0 && turn === aiColor) { last = history.pop(); board[last[0]][last[1]] = EMPTY; turn = last[2]; }
+  }
+  updateStatus(); drawBoard(); updateLiveEval();
+  if (mode === "AI" && turn === aiColor) setTimeout(makeAiMove, 400);
+}
+
+function updateStatus() {
+  if (isReviewing) {
+    statusTxt.innerText = `【棋局回顧】 第 ${reviewIndex} 手 / 共 ${reviewHistory.length} 手`; return;
+  }
+  if (gameOver) return;
+  const p = playerOf[turn], colorStr = turn === BLACK ? "黑" : "白";
+  const moveNum = history.length + 1;
+  
+  if (mode === "AI") {
+    let aiColorStr = aiColor === BLACK ? "黑" : "白";
+    statusTxt.innerText = `第 ${moveNum} 手 | 輪到：${p}（${colorStr}） | 電腦執${aiColorStr}`;
+  } else {
+    statusTxt.innerText = `第 ${moveNum} 手 | 輪到：${p}（${colorStr}）`;
+  }
+}
+
+function startReviewMode() {
+  isReviewing = true; btnUndo.disabled = true; 
+  reviewHistory = [...history]; reviewIndex = reviewHistory.length;
+  document.getElementById("review-panel").style.display = "flex";
+  updateStatus(); drawBoard(reviewIndex);
+}
+
+function reviewMove(step) {
+  if (!isReviewing) return;
+  reviewIndex += step;
+  if (reviewIndex < 0) reviewIndex = 0;
+  if (reviewIndex > reviewHistory.length) reviewIndex = reviewHistory.length;
+  updateStatus(); drawBoard(reviewIndex);
+}
+
+document.addEventListener('keydown', (e) => {
+  if (isReviewing) {
+    if (e.key === 'ArrowLeft') reviewMove(-1);
+    else if (e.key === 'ArrowRight') reviewMove(1);
+  }
+});
+
+function drawBoard(targetMoves = history.length) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#3E2723"; ctx.lineWidth = 1;
+  for (let i = 0; i < size; i++) {
+    let pos = pad + i * cellSize;
+    ctx.beginPath(); ctx.moveTo(pad, pos); ctx.lineTo(canvas.width - pad, pos); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pos, pad); ctx.lineTo(pos, canvas.height - pad); ctx.stroke();
+  }
+  ctx.fillStyle = "#3E2723";
+  for(let r of [3, 7, 11]) for(let c of [3, 7, 11]) { ctx.beginPath(); ctx.arc(pad + c * cellSize, pad + r * cellSize, 4, 0, Math.PI*2); ctx.fill(); }
+
+  let currentBoard = Array.from({ length: size }, () => Array(size).fill(EMPTY));
+  let sourceHistory = isReviewing ? reviewHistory : history;
+  
+  for (let i = 0; i < targetMoves; i++) {
+    let m = sourceHistory[i];
+    currentBoard[m[0]][m[1]] = m[2];
+  }
+
+  let lastMove = targetMoves > 0 ? sourceHistory[targetMoves - 1] : null;
+
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+    if (currentBoard[r][c] !== EMPTY) {
+      let cx = pad + c * cellSize, cy = pad + r * cellSize;
+      ctx.shadowColor = "rgba(0,0,0,0.6)"; ctx.shadowBlur = 5; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 17, 0, Math.PI * 2);
+      const grad = ctx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, 17);
+      if (currentBoard[r][c] === BLACK) { grad.addColorStop(0, "#444"); grad.addColorStop(1, "#000"); } 
+      else { grad.addColorStop(0, "#fff"); grad.addColorStop(1, "#d4d4d4"); }
+      ctx.fillStyle = grad; ctx.fill(); ctx.shadowColor = "transparent";
+
+      if (lastMove && lastMove[0] === r && lastMove[1] === c) {
+        ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fillStyle = "red"; ctx.fill();
+      }
+    }
+  }
+}
+
+// 🚫 禁手判定引擎
+function checkForbidden(r, c, color) {
+  if (!useRules || color !== BLACK) return false;
+  board[r][c] = BLACK;
+  
+  let isWin = false, overline = false;
+  for (let [dr, dc] of DIRS) {
+    let count = countLine(r, c, dr, dc, BLACK);
+    if (count === 5) isWin = true;
+    if (count >= 6) overline = true;
+  }
+  if (isWin) { board[r][c] = EMPTY; return false; } 
+  if (overline) { board[r][c] = EMPTY; return "長連禁手"; }
+
+  let openThrees = 0, fours = 0;
+  for (let [dr, dc] of DIRS) {
+    let [cnt1, open1] = countDirDetails(r, c, dr, dc, BLACK);
+    let [cnt2, open2] = countDirDetails(r, c, -dr, -dc, BLACK);
+    let total = cnt1 + cnt2 + 1;
+    let opens = (open1?1:0) + (open2?1:0);
+    
+    if (total === 4) fours++; 
+    if (total === 3 && opens === 2) openThrees++;
+  }
+  board[r][c] = EMPTY;
+
+  if (fours >= 2) return "四四禁手";
+  if (openThrees >= 2) return "三三禁手";
+  return false;
+}
+
+function countLine(r, c, dr, dc, color) {
+  let [cnt1] = countDirDetails(r, c, dr, dc, color);
+  let [cnt2] = countDirDetails(r, c, -dr, -dc, color);
+  return cnt1 + cnt2 + 1;
+}
+
+function countDirDetails(r, c, dr, dc, color) {
+  let rr = r + dr, cc = c + dc, count = 0;
+  while (rr >= 0 && rr < size && cc >= 0 && cc < size && board[rr][cc] === color) { count++; rr += dr; cc += dc; }
+  let open = (rr >= 0 && rr < size && cc >= 0 && cc < size && board[rr][cc] === EMPTY);
+  return [count, open];
+}
+
+canvas.addEventListener("click", (e) => {
+  initAudio();
+  if (gameOver || isReviewing || (mode === "AI" && turn === aiColor)) return;
+  const rect = canvas.getBoundingClientRect();
+  const c = Math.round(((e.clientX - rect.left) * (canvas.width / rect.width) - pad) / cellSize);
+  const r = Math.round(((e.clientY - rect.top) * (canvas.height / rect.height) - pad) / cellSize);
+  
+  if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === EMPTY) {
+    let forbiddenReason = checkForbidden(r, c, turn);
+    if (forbiddenReason) {
+        warningMsg.innerText = `🚫 觸發 ${forbiddenReason}！無法落子`;
+        return;
+    }
+    warningMsg.innerText = "";
+    placeStone(r, c, turn);
+  }
+});
+
+// 🤝 👑 新增：偵測是否全盤已經完全沒有任何人有機會達成五連
+function checkEarlyDraw() {
+  for (let r = 0; r < size; r++) {
+    for (let c = 0; c < size; c++) {
+      for (let [dr, dc] of DIRS) {
+        let endR = r + dr * 4;
+        let endC = c + dc * 4;
+        // 確保這條 5 格線段完全在棋盤範圍內
+        if (endR >= 0 && endR < size && endC >= 0 && endC < size) {
+          let hasBlack = false;
+          let hasWhite = false;
+          
+          // 檢查這 5 個連續格子的內容物
+          for (let i = 0; i < 5; i++) {
+            let currR = r + dr * i;
+            let currC = c + dc * i;
+            if (board[currR][currC] === BLACK) hasBlack = true;
+            if (board[currR][currC] === WHITE) hasWhite = true;
+          }
+          
+          // 如果只要存在任何一條線段是「純黑+空格」或「純白+空格」
+          // 代表某一方理論上還存有獲勝的可能性，不能算死局
+          if (!hasBlack || !hasWhite) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true; // 翻遍全盤，所有 5 格線段全被同時塞了黑白子，宣告提前平手
+}
+
+function placeStone(r, c, color) {
+  board[r][c] = color; history.push([r, c, color]); playWoodSound(); drawBoard();
+  
+  // 1. 檢查是否達成五連獲勝
+  if (checkWinResult(r, c, color)) {
+    gameOver = true;
+    let pName = (mode === "AI" && color === aiColor) ? "電腦" : (color === BLACK ? "黑方" : "白方");
+    updateStatus();
+    updateEvalBar(color === BLACK ? 100 : 0, `🏆 ${pName} 獲勝！`);
+    
+    let isHellLoss = (mode === "AI" && aiDifficulty === "HELL" && color === aiColor);
+    setTimeout(() => showWinMessage(`${pName} 獲勝！`, isHellLoss), 200);
+    return;
+  }
+  
+  // 2. 👑 智慧型殘局提前和棋偵測
+  if (checkEarlyDraw()) {
+    gameOver = true;
+    updateStatus();
+    updateEvalBar(50, `🤝 提前和棋！雙方已無任何獲勝可能`);
+    setTimeout(() => showWinMessage(`提前和棋！雙方已無獲勝可能`, false), 200);
+    return;
+  }
+  
+  turn = turn === BLACK ? WHITE : BLACK; updateStatus(); updateLiveEval();
+  if (mode === "AI" && turn === aiColor && !gameOver) setTimeout(makeAiMove, 50); 
+}
+
+function checkWinResult(r, c, color) {
+  for (let [dr, dc] of DIRS) {
+    let count = countLine(r, c, dr, dc, color);
+    if (count === 5) return true; 
+    if (count > 5 && (color === WHITE || !useRules)) return true;
+  }
+  return false;
+}
+
+// ==============================
+// 🧠 戰術連擊與博弈引擎 (終極強化版)
+// ==============================
+function updateLiveEval() {
+  if(history.length < 2) return;
+  let bScore = evaluateSide(BLACK);
+  let wScore = evaluateSide(WHITE);
+  let bRate = 50;
+  if(bScore > 1000000) bRate = 99; else if(wScore > 1000000) bRate = 1;
+  else if (bScore > 0 || wScore > 0) bRate = Math.round((bScore / (bScore + wScore)) * 100);
+  
+  if(bRate > 99) bRate = 99; if(bRate < 1) bRate = 1;
+  updateEvalBar(bRate, `📊 AI 預測勝率：黑 ${bRate}% | 白 ${100-bRate}%`);
+}
+
+function updateEvalBar(bRate, text) {
+  document.getElementById("eval-black").style.width = `${bRate}%`;
+  document.getElementById("eval-white").style.width = `${100 - bRate}%`;
+  document.getElementById("eval-black").innerText = bRate > 10 ? `${bRate}%` : '';
+  document.getElementById("eval-white").innerText = (100-bRate) > 10 ? `${100-bRate}%` : '';
+  document.getElementById("eval-text").innerText = text;
+}
+
+function evaluateSide(color) {
+  let score = 0;
+  let cands = nearbyEmptyCells(2);
+  for(let [r, c] of cands) {
+      if (color === BLACK && checkForbidden(r, c, BLACK)) continue;
+      score += scoreMove(r, c, color) * 1.5;
+  }
+  return score;
+}
+
+function makeAiMove() {
+  if (gameOver) return;
+  statusTxt.innerText = "電腦思考中...";
+  setTimeout(() => {
+      let move = aiPickMove(aiColor);
+      if(move && move.r !== undefined) placeStone(move.r, move.c, turn);
+  }, 50);
+}
+
+/* 🎯 基礎棋型估值器 */
+function scoreMove(r, c, color) {
+  let total = 0;
+  for (let [dr, dc] of DIRS) {
+    let [cnt1, open1] = countDirDetails(r, c, dr, dc, color);
+    let [cnt2, open2] = countDirDetails(r, c, -dr, -dc, color);
+    let line = cnt1 + cnt2 + 1;
+    let opens = (open1?1:0) + (open2?1:0);
+    
+    if (line >= 5) total += 10000000;
+    else if (line === 4) total += opens === 2 ? 500000 : (opens === 1 ? 100000 : 0);
+    else if (line === 3) total += opens === 2 ? 40000 : (opens === 1 ? 5000 : 0);
+    else if (line === 2) total += opens === 2 ? 1000 : (opens === 1 ? 100 : 0);
+    else if (line === 1) total += opens === 2 ? 10 : (opens === 1 ? 2 : 0);
+  } 
+  return total;
+}
+
+/* 🥊 地獄專用：複合連擊棋型精準分析矩陣 */
+function getMoveComboScore(r, c, color) {
+  let live4 = 0, rush4 = 0, live3 = 0;
+  for (let [dr, dc] of DIRS) {
+    let [cnt1, open1] = countDirDetails(r, c, dr, dc, color);
+    let [cnt2, open2] = countDirDetails(r, c, -dr, -dc, color);
+    let line = cnt1 + cnt2 + 1;
+    let opens = (open1 ? 1 : 0) + (open2 ? 1 : 0);
+    
+    if (line >= 5) return 20000000; // 形成五連直接絕殺
+    if (line === 4) {
+      if (opens === 2) live4++;
+      else if (opens === 1) rush4++;
+    } else if (line === 3) {
+      if (opens === 2) live3++;
+    }
+  }
+  
+  let score = 0;
+  if (live4 > 0) score += 8000000; // 活四必勝型
+  if (rush4 >= 2) score += 4000000; // 雙衝四殺招
+  if (rush4 >= 1 && live3 >= 1) score += 3000000; // 經典四三絕殺路徑
+  if (live3 >= 2) {
+    if (color === BLACK && useRules) score -= 1000000; // 嚴格避開黑棋三三禁手
+    else score += 1500000; // 白棋雙三無限制直接起飛
+  }
+  
+  score += rush4 * 200000 + live3 * 80000;
+  return score;
+}
+
+/* 👑 核心優化：更深、分支更廣的 Alpha-Beta 博弈樹 */
+function alphaBetaSearch(depth, alpha, beta, isMax, turnColor, aiColor) {
+  let oppColor = aiColor === BLACK ? WHITE : BLACK;
+  
+  if (depth === 0) {
+    let aiScore = 0, oppScore = 0;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        if (board[r][c] === aiColor) aiScore += scoreMove(r, c, aiColor);
+        else if (board[r][c] === oppColor) oppScore += scoreMove(r, c, oppColor);
+      }
+    }
+    return aiScore - oppScore * 1.5; 
+  }
+  
+  let currentOpp = turnColor === BLACK ? WHITE : BLACK;
+  let cands = nearbyEmptyCells(1); 
+  if (cands.length === 0) return 0;
+  
+  let scored = cands.map(([r, c]) => {
+    let score = scoreMove(r, c, turnColor) + scoreMove(r, c, currentOpp);
+    return {r, c, score};
+  }).sort((a, b) => b.score - a.score);
+  
+  // 擴大內部節點寬度到 8，防止漏算大師級的側翼奇襲
+  let limit = Math.min(scored.length, 8); 
+  
+  if (isMax) {
+    let maxEval = -Infinity;
+    for (let i = 0; i < limit; i++) {
+      let m = scored[i];
+      if (turnColor === BLACK && checkForbidden(m.r, m.c, BLACK)) continue;
+      board[m.r][m.c] = turnColor;
+      if (checkWinResult(m.r, m.c, turnColor)) {
+        board[m.r][m.c] = EMPTY;
+        return 10000000 + depth;
+      }
+      let evalVal = alphaBetaSearch(depth - 1, alpha, beta, false, currentOpp, aiColor);
+      board[m.r][m.c] = EMPTY;
+      maxEval = Math.max(maxEval, evalVal);
+      alpha = Math.max(alpha, evalVal);
+      if (beta <= alpha) break;
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (let i = 0; i < limit; i++) {
+      let m = scored[i];
+      if (turnColor === BLACK && checkForbidden(m.r, m.c, BLACK)) continue;
+      board[m.r][m.c] = turnColor;
+      if (checkWinResult(m.r, m.c, turnColor)) {
+        board[m.r][m.c] = EMPTY;
+        return -10000000 - depth;
+      }
+      let evalVal = alphaBetaSearch(depth - 1, alpha, beta, true, currentOpp, aiColor);
+      board[m.r][m.c] = EMPTY;
+      minEval = Math.min(minEval, evalVal);
+      beta = Math.min(beta, evalVal);
+      if (beta <= alpha) break;
+    }
+    return minEval;
+  }
+}
+
+function aiPickMove(color) {
+  const opp = color === BLACK ? WHITE : BLACK;
+  
+  // 優先權 1：絕對絕殺與絕對防守判定（掃描全盤是否存在一步到位的 5 連）
+  let move = findWinningSpot(color) || findWinningSpot(opp);
+  if (move) return {r: move[0], c: move[1]};
+
+  let candidates = nearbyEmptyCells(2);
+  if (history.length === 0) return {r: 7, c: 7};
+  if (history.length === 1 && board[7][7] === EMPTY) return {r: 7, c: 7};
+
+  if (aiDifficulty === "EASY" && Math.random() < 0.8) {
+    let rnd = candidates[Math.floor(Math.random() * candidates.length)];
+    return {r: rnd[0], c: rnd[1]};
+  }
+
+  /* 🔥 啟動對抗線上專家的地獄決策核心 */
+  if (aiDifficulty === "HELL") {
+    let bestMove = null;
+    let maxAlpha = -Infinity;
+    
+    let scoredCands = candidates.map(([r, c]) => {
+      let attack = getMoveComboScore(r, c, color);
+      let defense = getMoveComboScore(r, c, opp);
+      let centerBonus = (12 - (Math.abs(r - 7) + Math.abs(c - 7))) * 15;
+      
+      // 模擬落子看是否能直接逼迫對手進入死局
+      board[r][c] = color;
+      if (checkWinResult(r, c, color)) { board[r][c] = EMPTY; return {r, c, score: 99999999}; }
+      board[r][c] = opp;
+      if (checkWinResult(r, c, opp)) { board[r][c] = EMPTY; return {r, c, score: 88888888}; }
+      board[r][c] = EMPTY;
+      
+      // 提高防守反擊權重比率，死咬大師級 AI 的落子
+      return {r, c, score: attack * 1.3 + defense * 1.1 + centerBonus};
+    }).sort((a, b) => b.score - a.score);
+    
+    // 如果偵測到絕殺或必救點，立刻落子
+    if (scoredCands[0].score >= 88888888) {
+      return {r: scoredCands[0].r, c: scoredCands[0].c};
+    }
+    
+    // 擴大根節點搜尋寬度至前 12 強候選點，深度直接拉到 4 手展開
+    let searchLimit = Math.min(scoredCands.length, 12);
+    for (let i = 0; i < searchLimit; i++) {
+      let cand = scoredCands[i];
+      if (color === BLACK && checkForbidden(cand.r, cand.c, BLACK)) continue;
+      
+      board[cand.r][cand.c] = color;
+      let val = alphaBetaSearch(4, -Infinity, Infinity, false, opp, color);
+      board[cand.r][cand.c] = EMPTY;
+      
+      if (val > maxAlpha) {
+        maxAlpha = val;
+        bestMove = {r: cand.r, c: cand.c};
+      }
+    }
+    if (bestMove) return bestMove;
+  }
+
+  // 傳統標準難度計算（簡單、中等、困難保持原配置）
+  let best = null, bestScore = -Infinity;
+  for (let [r, c] of candidates) {
+    if (color === BLACK && checkForbidden(r, c, BLACK)) continue;
+
+    let attack = scoreMove(r, c, color);
+    let defense = scoreMove(r, c, opp);
+    let score = 0;
+
+    if (aiDifficulty === "EASY") score = attack + defense + Math.random() * 5000;
+    else if (aiDifficulty === "MEDIUM") score = attack * 1.5 + defense * 1.0 + Math.random() * 500;
+    else if (aiDifficulty === "HARD") {
+      score = attack * 1.5 + defense * 2.0;
+      board[r][c] = color;
+      let f1 = checkWinResult(r, c, color) ? 50000 : 0;
+      board[r][c] = opp;
+      let f2 = checkWinResult(r, c, opp) ? 40000 : 0;
+      board[r][c] = EMPTY;
+      score += f1 + f2;
+    }
+    
+    if (score > bestScore) { bestScore = score; best = [r, c]; }
+  }
+  return {r: best[0], c: best[1]};
+}
+
+function findWinningSpot(color) {
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) {
+    if (board[r][c] !== EMPTY) continue;
+    if (color === BLACK && checkForbidden(r, c, BLACK)) continue;
+    board[r][c] = color; let win = checkWinResult(r, c, color); board[r][c] = EMPTY;
+    if (win) return [r, c];
+  } return null;
+}
+
+function nearbyEmptyCells(radius) {
+  let stones = [], set = new Set();
+  for (let r = 0; r < size; r++) for (let c = 0; c < size; c++) if (board[r][c] !== EMPTY) stones.push([r, c]);
+  if (stones.length === 0) return [[7, 7]];
+  for (let [r0, c0] of stones) for (let dr = -radius; dr <= radius; dr++) for (let dc = -radius; dc <= radius; dc++) {
+    let r = r0 + dr, c = c0 + dc;
+    if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === EMPTY) set.add(`${r},${c}`);
+  }
+  return Array.from(set).map(s => s.split(',').map(Number));
+}
+</script>
+</body>
+</html>
